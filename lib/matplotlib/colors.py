@@ -781,6 +781,34 @@ class LinearSegmentedColormap(Colormap):
 
         return LinearSegmentedColormap(name, cdict, N, gamma)
 
+    def __add__(self, rhs):
+        """
+        Adds two color maps together.  If *a* and *b* are two
+        LinearSegmentedColormaps then *a* + *b* returns a
+        LinearSegmentedColormap with *b* below *a*.
+        """
+        lhs_dict = self._segmentdata
+        rhs_dict = rhs._segmentdata
+        new_dict = dict(red=[], green=[], blue=[])
+
+        # Scale rhs by half
+        for key in rhs_dict:
+            val_list = rhs_dict[key]
+            print(key, val_list)
+            for val in val_list:
+                new_dict[key].append((val[0] / 2.0, val[1], val[2]))
+
+        # Append lhs
+        for key in lhs_dict:
+            val_list = lhs_dict[key]
+            print(key, val_list)
+            for val in val_list:
+                new_dict[key].append((0.5 + val[0] / 2.0, val[1], val[2]))
+
+        N = 256
+        gamma = 1.0
+        return LinearSegmentedColormap('something', new_dict, N, gamma)
+
 
 class ListedColormap(Colormap):
     """Colormap object generated from a list of colors.
