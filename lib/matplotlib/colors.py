@@ -781,33 +781,13 @@ class LinearSegmentedColormap(Colormap):
 
         return LinearSegmentedColormap(name, cdict, N, gamma)
 
+
     def __add__(self, rhs):
-        """
-        Adds two color maps together.  If *a* and *b* are two
-        LinearSegmentedColormaps then *a* + *b* returns a
-        LinearSegmentedColormap with *b* below *a*.
-        """
-        lhs_dict = self._segmentdata
-        rhs_dict = rhs._segmentdata
-        new_dict = dict(red=[], green=[], blue=[])
+        return concatenate_colormaps((self, rhs))
 
-        # Scale rhs by half
-        for key in rhs_dict:
-            val_list = rhs_dict[key]
-            print(key, val_list)
-            for val in val_list:
-                new_dict[key].append((val[0] / 2.0, val[1], val[2]))
 
-        # Append lhs
-        for key in lhs_dict:
-            val_list = lhs_dict[key]
-            print(key, val_list)
-            for val in val_list:
-                new_dict[key].append((0.5 + val[0] / 2.0, val[1], val[2]))
-
-        N = 256
-        gamma = 1.0
-        return LinearSegmentedColormap('something', new_dict, N, gamma)
+    def __radd__(self, lhs):
+        return concatenate_colormaps((lhs, self))
 
 
 class ListedColormap(Colormap):
@@ -1588,3 +1568,38 @@ def from_levels_and_colors(levels, colors, extend='neither'):
 
     norm = BoundaryNorm(levels, ncolors=n_data_colors)
     return cmap, norm
+
+
+def concatenate_colormaps(colormaps, break_location=0.5, name="cat_map"):
+    """Concatenate colormaps in *colormaps* together.
+
+    Adds two color maps together.  If *a* and *b* are two
+    LinearSegmentedColormaps then *a* + *b* returns a
+    LinearSegmentedColormap with *b* below *a*.
+
+    returns `matplotlib.colors.LinearSegmentedColormap`
+    """
+
+    lhs_dict = colormaps[0]._segmentdata
+    rhs_dict = colormaps[1]._segmentdata
+    new_dict = dict(red=[], green=[], blue=[])
+ 
+    # Scale rhs to fit into space defined by break_location
+    for key in rhs_dict:
+        val_list = rhs_dict[key]
+        # print(key, val_list)
+        for val in val_list:
+            new_dict[key].append((val[0] * break_location, val[1], val[2]))
+ 
+    # Append lhs
+    for key in lhs_dict:
+        val_list = lhs_dict[key]
+        # print(key, val_list)
+        for val in val_list:
+            new_dict[key].append((break_location 
+                             + val[0] * (1.0 - break_location), val[1], val[2]))
+ 
+    N = 256
+    gamma = 1.0
+ 
+    return colors.LinearSegmentedColormap(name, new_dict, N, gamma)
